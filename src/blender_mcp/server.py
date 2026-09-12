@@ -1,5 +1,6 @@
 # blender_mcp_server.py
 from mcp.server.fastmcp import FastMCP, Context, Image
+import argparse
 import socket
 import json
 import asyncio
@@ -37,6 +38,49 @@ logger = logging.getLogger("BlenderMCPServer")
 # Default configuration
 DEFAULT_HOST = "localhost"
 DEFAULT_PORT = 9876
+
+
+def parse_connection_args(argv):
+    """Parse --host/--port out of argv, ignoring anything else.
+
+    parse_known_args is deliberate: MCP clients sometimes append their own
+    arguments to the server command, and an unrecognised one must not abort
+    startup. Unknown args are logged rather than dropped silently, so a typo
+    like --prot does not masquerade as "connected to the default port".
+    """
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--host", default=None)
+    parser.add_argument("--port", type=int, default=None)
+    args, unknown = parser.parse_known_args(argv)
+    if unknown:
+        logger.warning(f"Ignoring unrecognized command-line arguments: {unknown}")
+    return args.host, args.port
+
+
+def resolve_connection(cli_host=None, cli_port=None):
+    """Resolve the Blender address: CLI flags > environment > defaults."""
+    host = cli_host or os.getenv("BLENDER_HOST", DEFAULT_HOST)
+
+    if cli_port is not None:
+        return host, cli_port
+
+    raw_port = os.getenv("BLENDER_PORT")
+    if raw_port is None or raw_port == "":
+        return host, DEFAULT_PORT
+    try:
+        return host, int(raw_port)
+    except ValueError:
+        logger.warning(
+            f"BLENDER_PORT={raw_port!r} is not a valid port number; "
+            f"falling back to {DEFAULT_PORT}"
+        )
+        return host, DEFAULT_PORT
+
+
+# Set from --host/--port in main(); these take precedence over the
+# BLENDER_HOST/BLENDER_PORT environment variables.
+CLI_HOST = None
+CLI_PORT = None
 
 _addon_handshake = None
 _addon_handshake_checked = False
@@ -325,8 +369,7 @@ def get_blender_connection():
 
     # Create a new connection if needed
     if _blender_connection is None:
-        host = os.getenv("BLENDER_HOST", DEFAULT_HOST)
-        port = int(os.getenv("BLENDER_PORT", DEFAULT_PORT))
+        host, port = resolve_connection(CLI_HOST, CLI_PORT)
         _blender_connection = BlenderConnection(host=host, port=port)
         if not _blender_connection.connect():
             logger.error("Failed to connect to Blender")
@@ -1951,10 +1994,14 @@ def asset_creation_strategy() -> str:
 
 def main():
     """Run the MCP server, or addon install CLI subcommands."""
+    global CLI_HOST, CLI_PORT
+
     if len(sys.argv) > 1 and sys.argv[1] in {"install-addon", "addon-paths", "-h", "--help"}:
         code = run_addon_cli(sys.argv[1:])
         if code >= 0:
             raise SystemExit(code)
+
+    CLI_HOST, CLI_PORT = parse_connection_args(sys.argv[1:])
 
     # When run by hand (stdin is a TTY) the server appears to "hang" while it
     # silently waits for an MCP client; log a hint so that state is obvious.
