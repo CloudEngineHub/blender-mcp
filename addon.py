@@ -29,7 +29,7 @@ from bpy.app.handlers import persistent
 bl_info = {
     "name": "MCP for Blender",
     "author": "BlenderMCP",
-    "version": (1, 6),
+    "version": (1, 7),
     "blender": (3, 0, 0),
     "location": "View3D > Sidebar > MCP for Blender",
     "description": "Connect Blender to Claude via MCP",
@@ -37,7 +37,7 @@ bl_info = {
 }
 
 # Keep in sync with blender_mcp.addon_manager.EXPECTED_ADDON_PROTOCOL_VERSION.
-ADDON_PROTOCOL_VERSION = 6
+ADDON_PROTOCOL_VERSION = 7
 
 # Per-snapshot object cap for get_world_state_snapshot. Keep in sync with
 # blender_mcp.trajectory.MAX_SNAPSHOT_OBJECTS.
