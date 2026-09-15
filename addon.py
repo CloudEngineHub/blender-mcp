@@ -28,11 +28,12 @@ from bpy.app.handlers import persistent
 
 bl_info = {
     "name": "MCP for Blender",
-    "author": "BlenderMCP",
+    "author": "Siddharth Ahuja",
     "version": (1, 7),
     "blender": (3, 0, 0),
     "location": "View3D > Sidebar > MCP for Blender",
     "description": "Connect Blender to Claude via MCP",
+    "doc_url": "https://mcp-for-blender.com/",
     "category": "Interface",
 }
 
