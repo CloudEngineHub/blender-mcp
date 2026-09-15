@@ -37,7 +37,7 @@ bl_info = {
 }
 
 # Keep in sync with blender_mcp.addon_manager.EXPECTED_ADDON_PROTOCOL_VERSION.
-ADDON_PROTOCOL_VERSION = 5
+ADDON_PROTOCOL_VERSION = 6
 
 # Per-snapshot object cap for get_world_state_snapshot. Keep in sync with
 # blender_mcp.trajectory.MAX_SNAPSHOT_OBJECTS.
