@@ -202,6 +202,8 @@ def test_mcp_tool_forwards_the_command_to_blender():
     finally:
         server.get_blender_connection = original
 
-    assert sent == [("export_scene", {"filepath": "/tmp/x.glb", "format": "glb", "object_names": None,
-                                      "selection_only": False, "apply_modifiers": True})]
+    # The trajectory decorator also sends get_telemetry_consent, so match on the export.
+    exports = [entry for entry in sent if entry[0] == "export_scene"]
+    assert exports == [("export_scene", {"filepath": "/tmp/x.glb", "format": "glb", "object_names": None,
+                                         "selection_only": False, "apply_modifiers": True})]
     assert json.loads(out)["exported"] == ["A"]
