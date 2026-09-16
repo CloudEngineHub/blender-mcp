@@ -21,4 +21,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 ENV BLENDER_HOST=host.docker.internal \
     BLENDER_PORT=9876
 
-ENTRYPOINT ["blender-mcp"]
+ENTRYPOINT ["mcp-for-blender"]

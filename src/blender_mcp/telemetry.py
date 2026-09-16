@@ -26,9 +26,13 @@ logger = logging.getLogger("blender-mcp-telemetry")
 def get_package_version() -> str:
     """Get the installed package version"""
     try:
-        return version("blender-mcp")
+        return version("mcp-for-blender")
     except PackageNotFoundError:
-        return "unknown"
+        # Pre-rename distribution name.
+        try:
+            return version("blender-mcp")
+        except PackageNotFoundError:
+            return "unknown"
 
 
 MCP_VERSION = get_package_version()

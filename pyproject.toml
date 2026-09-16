@@ -1,6 +1,6 @@
 [project]
-name = "blender-mcp"
-version = "1.9.4"
+name = "mcp-for-blender"
+version = "2.0.0"
 description = "Blender integration through the Model Context Protocol"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [project.scripts]
-blender-mcp = "blender_mcp.server:main"
+mcp-for-blender = "blender_mcp.server:main"
 
 [tool.pytest.ini_options]
 python_files = ["test_*.py"]

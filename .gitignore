@@ -21,3 +21,6 @@ local_tests/
 supabase/
 
 scripts/
+
+# Legacy PyPI shim — built and published separately, see runbook
+legacy-shim/

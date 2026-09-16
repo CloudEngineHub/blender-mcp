@@ -4,6 +4,9 @@
 
 **Connect Blender to any LLM**
 
+*formerly `blender-mcp` — the PyPI package is now [`mcp-for-blender`](https://pypi.org/project/mcp-for-blender/).*
+*Existing setups keep working; no config change is required.*
+
 **Disclaimer:** This is a third-party integration and not made by Blender
 
 Prompt-assisted 3D modeling, scene creation, and manipulation — driven by AI.
@@ -32,6 +35,10 @@ Prompt-assisted 3D modeling, scene creation, and manipulation — driven by AI.
 
 ## Quickstart
 
+> **Note:** the PyPI package `blender-mcp` is now **`mcp-for-blender`**. Existing setups
+> keep working — `uvx blender-mcp` still runs the server and **no config change is
+> required**. New installs should use `mcp-for-blender`.
+
 Three steps: install `uv`, point your MCP client at the server, install the Blender addon.
 
 **1. Install uv**
@@ -59,7 +66,7 @@ powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
     "mcpServers": {
         "blender": {
             "command": "uvx",
-            "args": ["blender-mcp"]
+            "args": ["mcp-for-blender"]
         }
     }
 }
@@ -70,7 +77,7 @@ powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 <summary><b>Claude Code</b></summary>
 
 ```bash
-claude mcp add blender uvx blender-mcp
+claude mcp add blender uvx mcp-for-blender
 ```
 </details>
 
@@ -78,7 +85,7 @@ claude mcp add blender uvx blender-mcp
 <summary><b>Codex</b></summary>
 
 ```bash
-codex mcp add blender -- uvx blender-mcp
+codex mcp add blender -- uvx mcp-for-blender
 ```
 </details>
 
@@ -91,7 +98,7 @@ See [MCP Client Setup](#mcp-client-setup) below for per-client instructions and 
 **3. Install the Blender addon**
 
 ```bash
-uvx blender-mcp install-addon
+uvx mcp-for-blender install-addon
 ```
 
 Then in Blender: **Edit → Preferences → Add-ons** → enable **Interface: MCP for Blender**.
@@ -210,7 +217,7 @@ On every OS, use uv's **official installer above — not `pip install uv`**, whi
 MCP clients started from a GUI (Claude Desktop, Cursor, VS Code from the Dock/Start menu) do **not** inherit your terminal's PATH, so a bare `"command": "uvx"` can fail with **`spawn uvx ENOENT`** even though `uvx` works in your terminal. If that happens:
 
 - Find uvx's full path — `which uvx` (macOS/Linux) or `where uvx` (Windows) — and use it as `"command"`, e.g. `/opt/homebrew/bin/uvx` or `C:\Users\<you>\.local\bin\uvx.exe`.
-- On Windows you can instead wrap it: `"command": "cmd", "args": ["/c", "uvx", "blender-mcp"]`.
+- On Windows you can instead wrap it: `"command": "cmd", "args": ["/c", "uvx", "mcp-for-blender"]`.
 - After any PATH or config change, **fully quit and relaunch** the client (Windows: quit from the system tray, not just the window; macOS: <kbd>Cmd</kbd>+<kbd>Q</kbd>).
 
 ### Pin the Python version
@@ -224,7 +231,7 @@ uv chooses which Python runs the server. On machines with conda (auto-activated 
     "mcpServers": {
         "blender": {
             "command": "uvx",
-            "args": ["--python", "3.11", "blender-mcp"],
+            "args": ["--python", "3.11", "mcp-for-blender"],
             "env": { "UV_PYTHON_PREFERENCE": "only-managed" }
         }
     }
@@ -236,7 +243,7 @@ uv chooses which Python runs the server. On machines with conda (auto-activated 
 If a previous failed attempt keeps replaying after a fix, clear the cache:
 
 ```bash
-uv cache clean blender-mcp && uvx --refresh blender-mcp
+uv cache clean mcp-for-blender blender-mcp && uvx --refresh mcp-for-blender
 ```
 
 ### Install without uv
@@ -244,11 +251,11 @@ uv cache clean blender-mcp && uvx --refresh blender-mcp
 On locked-down machines you can skip uvx entirely with [`pipx`](https://pipx.pypa.io), then point your client at the installed command:
 
 ```bash
-pipx install blender-mcp
+pipx install mcp-for-blender
 pipx ensurepath          # then restart your shell / client
 ```
 
-Use the resulting absolute path as `"command"` (find it with `which blender-mcp` / `where blender-mcp`) and omit `args`.
+Use the resulting absolute path as `"command"` (find it with `which mcp-for-blender` / `where mcp-for-blender`) and omit `args`.
 
 ### Run with Docker
 
@@ -257,7 +264,7 @@ You can run the MCP server in a container instead of installing it. Blender itse
 Build the image from the repo root:
 
 ```bash
-docker build -t blender-mcp .
+docker build -t mcp-for-blender .
 ```
 
 Then point your MCP client at it (the `-i` flag is required — the server talks to the client over stdin/stdout):
@@ -267,7 +274,7 @@ Then point your MCP client at it (the `-i` flag is required — the server talks
     "mcpServers": {
         "blender": {
             "command": "docker",
-            "args": ["run", "-i", "--rm", "blender-mcp"]
+            "args": ["run", "-i", "--rm", "mcp-for-blender"]
         }
     }
 }
@@ -282,7 +289,7 @@ On **Linux**, `host.docker.internal` doesn't exist and the addon only listens on
     "mcpServers": {
         "blender": {
             "command": "docker",
-            "args": ["run", "-i", "--rm", "--network=host", "-e", "BLENDER_HOST=localhost", "blender-mcp"]
+            "args": ["run", "-i", "--rm", "--network=host", "-e", "BLENDER_HOST=localhost", "mcp-for-blender"]
         }
     }
 }
@@ -313,7 +320,7 @@ by side, since each MCP client entry can point at a different port with plain
 arguments instead of env vars:
 
 ```bash
-uvx blender-mcp --port 9877
+uvx mcp-for-blender --port 9877
 ```
 
 In an MCP client config that means a second entry differing only in `args`:
@@ -321,8 +328,8 @@ In an MCP client config that means a second entry differing only in `args`:
 ```json
 {
   "mcpServers": {
-    "blender": { "command": "uvx", "args": ["blender-mcp"] },
-    "blender-b": { "command": "uvx", "args": ["blender-mcp", "--port", "9877"] }
+    "blender": { "command": "uvx", "args": ["mcp-for-blender"] },
+    "blender-b": { "command": "uvx", "args": ["mcp-for-blender", "--port", "9877"] }
   }
 }
 ```
@@ -354,7 +361,7 @@ Go to **Claude → Settings → Developer → Edit Config → `claude_desktop_co
         "blender": {
             "command": "uvx",
             "args": [
-                "blender-mcp"
+                "mcp-for-blender"
             ]
         }
     }
@@ -367,7 +374,7 @@ Go to **Claude → Settings → Developer → Edit Config → `claude_desktop_co
 Use the Claude Code CLI to add the MCP for Blender server:
 
 ```bash
-claude mcp add blender uvx blender-mcp
+claude mcp add blender uvx mcp-for-blender
 ```
 </details>
 
@@ -378,7 +385,7 @@ The Codex CLI, desktop app, and IDE extension all share the same config file (`~
 Register the server with the [Codex CLI](https://github.com/openai/codex):
 
 ```bash
-codex mcp add blender -- uvx blender-mcp
+codex mcp add blender -- uvx mcp-for-blender
 ```
 
 Or add it by hand to `~/.codex/config.toml` (or `$CODEX_HOME/config.toml`):
@@ -386,10 +393,10 @@ Or add it by hand to `~/.codex/config.toml` (or `$CODEX_HOME/config.toml`):
 ```toml
 [mcp_servers.blender]
 command = "uvx"
-args = ["blender-mcp"]
+args = ["mcp-for-blender"]
 ```
 
-Or in the **Codex desktop app**: **Settings → MCP servers → Add server** → name it `blender`, pick **STDIO**, enter `uvx blender-mcp` as the command, then **Save** and restart. If the app can't find `uvx`, use its full path instead — see [Make your client find uvx](#make-your-client-find-uvx).
+Or in the **Codex desktop app**: **Settings → MCP servers → Add server** → name it `blender`, pick **STDIO**, enter `uvx mcp-for-blender` as the command, then **Save** and restart. If the app can't find `uvx`, use its full path instead — see [Make your client find uvx](#make-your-client-find-uvx).
 
 Check it registered with `codex mcp list` — the `blender` server should show as **enabled**. The tools become available the next time you start Codex.
 
@@ -398,13 +405,13 @@ To set [environment variables](#environment-variables) (e.g. a non-default Blend
 ```toml
 [mcp_servers.blender]
 command = "uvx"
-args = ["blender-mcp"]
+args = ["mcp-for-blender"]
 env = { BLENDER_HOST = "localhost", BLENDER_PORT = "9876" }
 ```
 
 ### Cursor
 
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/link/mcp%2Finstall?name=blender&config=eyJjb21tYW5kIjoidXZ4IGJsZW5kZXItbWNwIn0%3D)
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/link/mcp%2Finstall?name=blender&config=eyJjb21tYW5kIjoidXZ4IG1jcC1mb3ItYmxlbmRlciJ9)
 
 **macOS** — go to **Settings → MCP** and paste the following:
 
@@ -417,7 +424,7 @@ env = { BLENDER_HOST = "localhost", BLENDER_PORT = "9876" }
         "blender": {
             "command": "uvx",
             "args": [
-                "blender-mcp"
+                "mcp-for-blender"
             ]
         }
     }
@@ -434,7 +441,7 @@ env = { BLENDER_HOST = "localhost", BLENDER_PORT = "9876" }
             "args": [
                 "/c",
                 "uvx",
-                "blender-mcp"
+                "mcp-for-blender"
             ]
         }
     }
@@ -449,7 +456,7 @@ env = { BLENDER_HOST = "localhost", BLENDER_PORT = "9876" }
 
 *Prerequisites*: Make sure you have [Visual Studio Code](https://code.visualstudio.com/) installed before proceeding.
 
-[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_blender--mcp_server-0098FF?style=flat-square&logo=visualstudiocode&logoColor=ffffff)](vscode:mcp/install?%7B%22name%22%3A%22blender-mcp%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22blender-mcp%22%5D%7D)
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_mcp--for--blender_server-0098FF?style=flat-square&logo=visualstudiocode&logoColor=ffffff)](vscode:mcp/install?%7B%22name%22%3A%22blender-mcp%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22mcp-for-blender%22%5D%7D)
 
 ### OpenCode
 
@@ -458,7 +465,7 @@ env = { BLENDER_HOST = "localhost", BLENDER_PORT = "9876" }
   "mcp": {
     "blender-mcp": {
       "type": "local",
-      "command": ["uvx", "blender-mcp"],
+      "command": ["uvx", "mcp-for-blender"],
       "enabled": true,
       "environment": {
         "BLENDER_HOST": "localhost",
@@ -476,7 +483,7 @@ env = { BLENDER_HOST = "localhost", BLENDER_PORT = "9876" }
   "mcpServers": {
     "blender-mcp": {
       "command": "uvx",
-      "args": ["blender-mcp"],
+      "args": ["mcp-for-blender"],
       "env": {
         "BLENDER_HOST": "localhost",
         "BLENDER_PORT": "9876"
@@ -493,12 +500,12 @@ env = { BLENDER_HOST = "localhost", BLENDER_PORT = "9876" }
 **1. Recommended** — from a terminal, run:
 
 ```bash
-uvx blender-mcp install-addon
+uvx mcp-for-blender install-addon
 ```
 
 This copies the addon into your Blender addons folder as `blender_mcp.py`. It prints where it wrote to, and keeps a `.bak` of any file it replaces.
 
-> Optional: `uvx blender-mcp addon-paths` lists detected Blender addons folders. Override the destination with `BLENDERMCP_ADDONS_DIR=/path/to/scripts/addons`.
+> Optional: `uvx mcp-for-blender addon-paths` lists detected Blender addons folders. Override the destination with `BLENDERMCP_ADDONS_DIR=/path/to/scripts/addons`.
 
 **2.** Open Blender
 
@@ -517,8 +524,8 @@ Then open the **MCP for Blender** tab in Blender's sidebar (press `N` in the 3D 
 **1.** Update the addon file by running:
 
 ```bash
-uvx blender-mcp install-addon
-uvx blender-mcp addon-paths   # optional: list detected Blender addons folders
+uvx mcp-for-blender install-addon
+uvx mcp-for-blender addon-paths   # optional: list detected Blender addons folders
 ```
 
 **2.** In Blender: **Preferences → Add-ons** → disable and re-enable **Interface: MCP for Blender** (or restart Blender), then click **Start MCP Server** again.
@@ -686,7 +693,7 @@ MCP for Blender collects anonymous usage data to help improve the tool. Telemetr
 **2. Environment Variable** — completely disable all telemetry by running:
 
 ```bash
-DISABLE_TELEMETRY=true uvx blender-mcp
+DISABLE_TELEMETRY=true uvx mcp-for-blender
 ```
 
 Or add it to your MCP config:
@@ -696,7 +703,7 @@ Or add it to your MCP config:
     "mcpServers": {
         "blender": {
             "command": "uvx",
-            "args": ["blender-mcp"],
+            "args": ["mcp-for-blender"],
             "env": {
                 "DISABLE_TELEMETRY": "true"
             }
