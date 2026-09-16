@@ -5,7 +5,7 @@
 **Connect Blender to any LLM**
 
 *formerly `blender-mcp` — the PyPI package is now [`mcp-for-blender`](https://pypi.org/project/mcp-for-blender/).*
-*Existing setups keep working; no config change is required.*
+*Existing setups keep working; no config change is required. [Read more](https://github.com/ahujasid/mcp-for-blender/issues/366)*
 
 **Disclaimer:** This is a third-party integration and not made by Blender
 
@@ -38,6 +38,7 @@ Prompt-assisted 3D modeling, scene creation, and manipulation — driven by AI.
 > **Note:** the PyPI package `blender-mcp` is now **`mcp-for-blender`**. Existing setups
 > keep working — `uvx blender-mcp` still runs the server and **no config change is
 > required**. New installs should use `mcp-for-blender`.
+> [What changed and why](https://github.com/ahujasid/mcp-for-blender/issues/366)
 
 Three steps: install `uv`, point your MCP client at the server, install the Blender addon.
 
