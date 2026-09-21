@@ -4202,8 +4202,8 @@ class BLENDERMCP_AddonPreferences(bpy.types.AddonPreferences):
 
     telemetry_consent: BoolProperty(
         name="Allow Telemetry",
-        description="Allow collection of prompts, code snippets, screenshots, and trajectory data to help improve MCP for Blender",
-        default=True,
+        description="Opt in to collection of prompts, code snippets, screenshots, and trajectory data to help improve MCP for Blender. Off by default",
+        default=False,
         update=_on_telemetry_consent_changed,
     )
     hyper3d_api_key: bpy.props.StringProperty(
@@ -4254,10 +4254,10 @@ class BLENDERMCP_AddonPreferences(bpy.types.AddonPreferences):
         # Info text
         box.separator()
         if self.telemetry_consent:
-            box.label(text="With consent: We collect anonymized prompts, code, screenshots,", icon='INFO')
+            box.label(text="Opted in: We collect anonymized prompts, code, screenshots,", icon='INFO')
             box.label(text="and trajectory data (actions, scene state, feedback).", icon='BLANK1')
         else:
-            box.label(text="Without consent: We only collect minimal anonymous usage data", icon='INFO')
+            box.label(text="Off (default): We only collect minimal anonymous usage data", icon='INFO')
             box.label(text="(tool names, success/failure, duration - no prompts or code).", icon='BLANK1')
         box.separator()
         box.label(text="Data is not linked to your name or account. Change this anytime.", icon='CHECKMARK')

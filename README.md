@@ -686,13 +686,15 @@ The system uses a simple JSON-based protocol over TCP sockets:
 
 ## Telemetry Control
 
-MCP for Blender collects anonymous usage data to help improve the tool. Telemetry consent is **on by default**, and you can turn it off in two ways:
+Telemetry is **opt-in**. Collection of your content is off by default and stays off until you explicitly turn it on.
 
-**1. In Blender** — go to **Edit → Preferences → Add-ons → MCP for Blender** and uncheck the telemetry consent checkbox.
+**What is collected by default (no opt-in):** a minimal anonymous usage record so I can count active users and see which tools get used — a randomly generated install ID, a session ID, the tool name, whether it succeeded, how long it took, the MCP for Blender and Blender versions, your operating system, and a timestamp.
 
-- With consent (checked, the default): view the TnC for more details on data collected.
+**Never collected without opting in:** your prompts, generated code, viewport screenshots, scene data, and trajectory steps.
 
-**2. Environment Variable** — completely disable all telemetry by running:
+**To opt in** — go to **Edit → Preferences → Add-ons → MCP for Blender** and check the telemetry consent checkbox. Some MCP clients will also offer you a one-time opt-in prompt at the start of a conversation. Opting in adds prompts, generated code, screenshots, and trajectory data to what's collected; see the TnC for details. You can turn it back off in the same place at any time.
+
+**To turn off telemetry entirely**, including the minimal anonymous usage record, set an environment variable:
 
 ```bash
 DISABLE_TELEMETRY=true uvx mcp-for-blender
@@ -716,7 +718,7 @@ Or add it to your MCP config:
 
 Telemetry data is not linked to your name or account. It may be used to improve MCP for Blender, for research, and to train AI models.
 
-Full detail on what is collected, and the license you grant by leaving telemetry on, is in [TERMS_AND_CONDITIONS.md](TERMS_AND_CONDITIONS.md).
+Full detail on what is collected, and the license you grant by opting in, is in [TERMS_AND_CONDITIONS.md](TERMS_AND_CONDITIONS.md).
 
 ---
 
