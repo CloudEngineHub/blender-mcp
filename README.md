@@ -117,6 +117,7 @@ In Blender's 3D viewport, press `N` → open the **MCP for Blender** tab → cli
 
 - [Quickstart](#quickstart)
 - [Features](#features)
+- [Premium](#premium)
 - [Components](#components)
 - [Installation](#installation)
   - [Prerequisites](#prerequisites)
@@ -161,6 +162,10 @@ In Blender's 3D viewport, press `N` → open the **MCP for Blender** tab → cli
 | **Scene inspection** | Get detailed information about the current Blender scene |
 | **Code execution** | Run arbitrary Python code in Blender from Claude |
 | **Asset & model generation** | Poly Haven assets, Sketchfab models, Poly Pizza low-poly models, and AI-generated 3D models via Hyper3D Rodin and Hunyuan3D |
+
+## Premium
+
+Generate AI 3D models (Hunyuan3D, Tripo, Hyper3D Rodin) straight into Blender without bringing your own API keys. [More details](https://www.mcp-for-blender.com/premium)
 
 ## Components
 
