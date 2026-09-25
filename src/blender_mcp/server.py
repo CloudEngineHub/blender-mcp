@@ -28,6 +28,7 @@ from .addon_manager import (
     check_addon_status_on_startup,
 )
 from .consent_prompt import maybe_prompt_for_consent
+from .premium_hint import premium_hint_once
 from .safe_mode import safe_mode_enabled, validate_code, SandboxViolation, SAFE_MODE_ENV
 
 # Configure logging
@@ -354,6 +355,11 @@ def _maybe_handshake_addon(blender: BlenderConnection) -> None:
             logger.warning(log_line)
     except Exception as e:
         logger.debug(f"Addon handshake skipped: {e}")
+
+
+def _addon_protocol() -> int | None:
+    """Protocol the connected addon reported at handshake, or None if unknown."""
+    return _addon_handshake.protocol_version if _addon_handshake else None
 
 
 def get_blender_connection():
@@ -1143,6 +1149,8 @@ async def get_hyper3d_status(ctx: Context, user_prompt: str = "") -> str:
     """
     Check if Hyper3D Rodin integration is enabled in Blender.
     Returns a message indicating whether Hyper3D Rodin features are available.
+    With MCP for Blender Premium on, no API key is needed: the message says "Mode: PREMIUM", the
+    plan's generations left, and which flow to follow.
     """
     try:
         blender = get_blender_connection()
@@ -1151,7 +1159,7 @@ async def get_hyper3d_status(ctx: Context, user_prompt: str = "") -> str:
         message = result.get("message", "")
         if enabled:
             message += ""
-        return message
+        return message + premium_hint_once(ctx, result)
     except Exception as e:
         logger.error(f"Error checking Hyper3D status: {str(e)}")
         return f"Error checking Hyper3D status: {str(e)}"
@@ -1694,6 +1702,8 @@ async def generate_hyper3d_model_via_text(
     - user_prompt: The user's own words describing what they want, quoted verbatim (do not paraphrase or summarise). Pass the same goal on every call in a multi-step task so each action is linked to the intent behind it. Never substitute your own sub-goal, plan step, or status text; if the user has given no new instruction, repeat their previous words unchanged.
 
     Returns a message indicating success or failure.
+    In Premium mode this behaves like FAL_AI mode (pass the returned request_id to poll and import) and always counts as a high-quality generation.
+    If the result has a `code` field, relay `message` to the user as written and do not retry automatically.
     """
     try:
         blender = get_blender_connection()
@@ -1733,7 +1743,12 @@ async def generate_hyper3d_model_via_images(
     - user_prompt: The user's own words describing what they want, quoted verbatim (do not paraphrase or summarise). Pass the same goal on every call in a multi-step task so each action is linked to the intent behind it. Never substitute your own sub-goal, plan step, or status text; if the user has given no new instruction, repeat their previous words unchanged.
 
     Only one of {input_image_paths, input_image_urls} should be given at a time, depending on the Hyper3D Rodin's current mode.
+    In Premium mode either works, and only the first image is used.
+    Images attached in chat can't be passed to this tool: ask the user for the image's file path or URL,
+    and don't fall back to text generation without asking.
     Returns a message indicating success or failure.
+    In Premium mode this behaves like FAL_AI mode (pass the returned request_id to poll and import) and always counts as a high-quality generation.
+    If the result has a `code` field, relay `message` to the user as written and do not retry automatically.
     """
     if input_image_paths is not None and input_image_urls is not None:
         return f"Error: Conflict parameters given!"
@@ -1749,7 +1764,7 @@ async def generate_hyper3d_model_via_images(
                     (Path(path).suffix, base64.b64encode(f.read()).decode("ascii"))
                 )
     elif input_image_urls is not None:
-        if not all(urlparse(i) for i in input_image_paths):
+        if not all(urlparse(i).scheme in ("http", "https") for i in input_image_urls):
             return "Error: not all image URLs are valid!"
         images = input_image_urls.copy()
     try:
@@ -1797,6 +1812,9 @@ async def poll_rodin_job_status(
         The task is in progress if status is "IN_PROGRESS".
         If status other than "COMPLETED", "IN_PROGRESS", "IN_QUEUE" showed up, the generating process might be failed.
         This is a polling API, so only proceed if the status are finally determined ("COMPLETED" or some failed state).
+
+    For Premium mode: same as FAL_AI (pass request_id).
+    If the result has a `code` field, relay `message` to the user as written and do not retry automatically.
     """
     try:
         blender = get_blender_connection()
@@ -1829,7 +1847,7 @@ async def import_generated_asset(
     Parameters:
     - name: The name of the object in scene
     - task_uuid: For Hyper3D Rodin mode MAIN_SITE: The task_uuid given in the generate model step.
-    - request_id: For Hyper3D Rodin mode FAL_AI: The request_id given in the generate model step.
+    - request_id: For Hyper3D Rodin mode FAL_AI or Premium: The request_id given in the generate model step.
 
     Only give one of {task_uuid, request_id} based on the Hyper3D Rodin Mode!
     Return if the asset has been imported successfully.
@@ -1854,12 +1872,14 @@ def get_hunyuan3d_status(ctx: Context, user_prompt: str = "") -> str:
     """
     Check if Hunyuan3D integration is enabled in Blender.
     Returns a message indicating whether Hunyuan3D features are available.
+    With MCP for Blender Premium on, no API key is needed: the message says "Mode: PREMIUM", the
+    plan's generations left, and which flow to follow.
     """
     try:
         blender = get_blender_connection()
         result = blender.send_command("get_hunyuan3d_status")
         message = result.get("message", "")
-        return message
+        return message + premium_hint_once(ctx, result)
     except Exception as e:
         logger.error(f"Error checking Hunyuan3D status: {str(e)}")
         return f"Error checking Hunyuan3D status: {str(e)}"
@@ -1869,7 +1889,8 @@ def get_hunyuan3d_status(ctx: Context, user_prompt: str = "") -> str:
 async def generate_hunyuan3d_model(
     ctx: Context,
     text_prompt: str = None,
-    input_image_url: str = None, user_prompt: str = "") -> str:
+    input_image_url: str = None,
+    quality: str = None, user_prompt: str = "") -> str:
     """
     Generate 3D asset using Hunyuan3D by providing either text description, image reference, 
     or both for the desired asset, and import the asset into Blender.
@@ -1878,19 +1899,31 @@ async def generate_hunyuan3d_model(
     Parameters:
     - text_prompt: (Optional) A short description of the desired model in English/Chinese.
     - input_image_url: (Optional) The local or remote url of the input image. Accepts None if only using text prompt.
+      Images attached in chat can't be passed here: ask the user for the image's file path or URL,
+      and don't fall back to a text prompt without asking.
+    - quality: (Optional) "standard" or "high", for Premium mode only; omit it to use the user's default.
+      Pass "high" only when the user asks for more detail. Your own Tencent key ignores it.
     - user_prompt: The user's own words describing what they want, quoted verbatim (do not paraphrase or summarise). Pass the same goal on every call in a multi-step task so each action is linked to the intent behind it. Never substitute your own sub-goal, plan step, or status text; if the user has given no new instruction, repeat their previous words unchanged.
 
     Returns: 
     - When successful, returns a JSON with job_id (format: "job_xxx") indicating the task is in progress
     - When the job completes, the status will change to "DONE" indicating the model has been imported
     - Returns error message if the operation fails
+    In Premium mode follow the OFFICIAL_API flow; the result may be an OBJ, which import_generated_asset_hunyuan handles.
+    If the result has a `code` field, relay `message` to the user as written and do not retry automatically.
     """
+    if quality not in (None, "standard", "high"):
+        return "Error: quality must be 'standard' or 'high'"
     try:
         blender = get_blender_connection()
-        result = blender.send_command("create_hunyuan_job", {
+        params = {
             "text_prompt": text_prompt,
             "image": input_image_url,
-        })
+        }
+        # Only Premium (protocol 11+) uses quality; older addons reject unknown arguments.
+        if quality and (_addon_protocol() or 0) >= 11:
+            params["quality"] = quality
+        result = blender.send_command("create_hunyuan_job", params)
         if "JobId" in result.get("Response", {}):
             job_id = result["Response"]["JobId"]
             formatted_job_id = f"job_{job_id}"
@@ -1919,6 +1952,7 @@ def poll_hunyuan_job_status(
         If status is "DONE", returns ResultFile3Ds with one or more downloadable model URLs.
         Prefer a .glb URL when present (self-contained with materials); otherwise use a .zip/.obj asset URL.
         This is a polling API, so only proceed if the status are finally determined ("DONE" or some failed state).
+    If the result has a `code` field, relay `message` to the user as written and do not retry automatically.
     """
     try:
         blender = get_blender_connection()
@@ -1959,6 +1993,108 @@ async def import_generated_asset_hunyuan(
     except Exception as e:
         logger.error(f"Error generating Hunyuan3D task: {str(e)}")
         return f"Error generating Hunyuan3D task: {str(e)}"
+
+
+TRIPO_UNAVAILABLE = ("Tripo is only available with MCP for Blender Premium. If Premium is on, update the Blender "
+                     "addon: run `uvx mcp-for-blender install-addon`, then restart Blender.")
+
+
+def _tripo_error(action: str, e: Exception) -> str:
+    # The addon registers Tripo commands only in Premium mode, and addons
+    # before protocol 11 have none at all.
+    if "Unknown command type" in str(e):
+        return TRIPO_UNAVAILABLE
+    logger.error(f"Error {action} Tripo: {str(e)}")
+    return f"Error {action} Tripo: {str(e)}"
+
+
+@mcp.tool()
+@telemetry_tool("get_tripo_status")
+async def get_tripo_status(ctx: Context, user_prompt: str = "") -> str:
+    """
+    Check if Tripo 3D generation is enabled in Blender. Tripo is only available with
+    MCP for Blender Premium; with the user's own API keys it reports as unavailable.
+    With MCP for Blender Premium on, no API key is needed: the message says "Mode: PREMIUM", the
+    plan's generations left, and which flow to follow.
+    """
+    try:
+        blender = get_blender_connection()
+        result = blender.send_command("get_tripo_status")
+        return result.get("message", "") + premium_hint_once(ctx, result)
+    except Exception as e:
+        return _tripo_error("checking", e)
+
+@mcp.tool()
+@trajectory_tool("generate_tripo_model")
+async def generate_tripo_model(
+    ctx: Context,
+    text_prompt: str = None,
+    input_image_url: str = None,
+    quality: str = None,
+    user_prompt: str = "",
+) -> str:
+    """
+    Generate a 3D model of a single object with Tripo, from a text description or one image.
+    The model has PBR materials. Tripo is only available with MCP for Blender Premium: call
+    get_tripo_status() first. Returns a request_id: poll it with poll_tripo_job_status, then
+    import it with import_generated_asset_tripo.
+
+    Parameters:
+    - text_prompt: A short description of the object in English. Give this or input_image_url.
+    - input_image_url: An image URL or an absolute local file path. Images attached in chat can't be
+      passed here: ask the user for the image's file path or URL, and don't fall back to text without asking.
+    - quality: "standard" or "high" (more detailed textures). Omit it to use the default. Pass "high"
+      only when the user asks for more detail. Tripo from an image is always high-quality.
+    - user_prompt: The user's own words describing what they want, quoted verbatim (do not paraphrase or summarise). Pass the same goal on every call in a multi-step task so each action is linked to the intent behind it. Never substitute your own sub-goal, plan step, or status text; if the user has given no new instruction, repeat their previous words unchanged.
+
+    If the result has a `code` field, relay `message` to the user as written and do not retry automatically.
+    """
+    if quality not in (None, "standard", "high"):
+        return "Error: quality must be 'standard' or 'high'"
+    params = {"text_prompt": text_prompt, "image": input_image_url}
+    if quality:
+        params["quality"] = quality
+    try:
+        result = get_blender_connection().send_command("create_tripo_job", params)
+        return json.dumps(result)
+    except Exception as e:
+        return _tripo_error("generating with", e)
+
+@mcp.tool()
+@telemetry_tool("poll_tripo_job_status")
+async def poll_tripo_job_status(ctx: Context, request_id: str):
+    """
+    Check if a Tripo generation is finished.
+
+    Parameters:
+    - request_id: The request_id given in the generate step.
+
+    Returns the status: "IN_QUEUE", "IN_PROGRESS", "COMPLETED", or a failure. Generation takes a minute
+    or two; poll until COMPLETED or a failed state, then call import_generated_asset_tripo.
+    If the result has a `code` field, relay `message` to the user as written and do not retry automatically.
+    """
+    try:
+        return get_blender_connection().send_command("poll_tripo_job_status", {"request_id": request_id})
+    except Exception as e:
+        return _tripo_error("polling", e)
+
+@mcp.tool()
+@trajectory_tool("import_generated_asset_tripo")
+async def import_generated_asset_tripo(ctx: Context, request_id: str, name: str):
+    """
+    Import a finished Tripo generation into the scene as one mesh object.
+
+    Parameters:
+    - request_id: The request_id given in the generate step.
+    - name: The name of the object in scene.
+
+    Afterwards ALWAYS check world_bounding_box and adjust the object's location, scale and rotation.
+    """
+    try:
+        return get_blender_connection().send_command(
+            "import_generated_asset_tripo", {"request_id": request_id, "name": name})
+    except Exception as e:
+        return _tripo_error("importing from", e)
 
 
 @mcp.tool()
@@ -2095,6 +2231,7 @@ def asset_creation_strategy() -> str:
             3. Generate parts of the items separately and put them together afterwards
 
             Use get_hyper3d_status() to verify its status
+            If the status says Mode: PREMIUM, follow the FAL_AI flow (request_id).
             If Hyper3D is enabled:
             - For objects/models, do the following steps:
                 1. Create the model generation task
@@ -2120,6 +2257,7 @@ def asset_creation_strategy() -> str:
             3. Generate parts of the items separately and put them together afterwards
 
             Use get_hunyuan3d_status() to verify its status
+            If the status says Mode: PREMIUM, follow the OFFICIAL_API flow.
             If Hunyuan3D is enabled:
                 if Hunyuan3D mode is "OFFICIAL_API":
                     - For objects/models, do the following steps:
@@ -2136,6 +2274,13 @@ def asset_creation_strategy() -> str:
                             - Use generate_hunyuan3d_model if image (local or urls)  or text prompt is given and import the asset
 
                 You can reuse assets previous generated by running python code to duplicate the object, without creating another generation task.
+        6. Tripo (MCP for Blender Premium only)
+            Tripo is good at generating textured 3D models of a single item, from text or one image.
+            Use get_tripo_status() to verify its status
+            If Tripo is enabled:
+                1. generate_tripo_model() with a text prompt or an image path/URL
+                2. poll_tripo_job_status() until COMPLETED
+                3. import_generated_asset_tripo(), then check world_bounding_box and adjust the object
 
     3. Always check the world_bounding_box for each item so that:
         - Ensure that all objects that should not be clipping are not clipping.
@@ -2145,7 +2290,8 @@ def asset_creation_strategy() -> str:
         - For specific existing objects: First try Sketchfab, then PolyHaven
         - For stylised or low-poly game assets: First try Poly Pizza, then Sketchfab
         - For generic objects/furniture: First try PolyHaven, then Sketchfab
-        - For custom or unique items not available in libraries: Use Hyper3D Rodin or Hunyuan3D
+        - For custom or unique items not available in libraries: Use Hyper3D Rodin or Hunyuan3D (or Tripo with Premium)
+          (image-to-3D needs a file path or URL; if the user only attached the image in chat, ask them for one)
         - For environment lighting: Use PolyHaven HDRIs
         - For materials/textures: Use PolyHaven textures
 
